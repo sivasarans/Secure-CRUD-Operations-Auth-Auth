@@ -6,7 +6,7 @@ To run this project locally, follow these steps:
 
 1. Clone the repository:
    ```
-   git clone <repository-url>
+   git clone https://github.com/sivasarans/Secure-CRUD-Operations-Auth-Auth
    ```
 2. Navigate to the project directory:
    ```
