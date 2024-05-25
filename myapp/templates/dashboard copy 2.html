@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h2>Welcome to the Dashboard</h2>
+    <p>Hello, {{ user.username }}!</p>
+    <a href="{% url 'logout' %}">Logout</a>
+
+    <h2 id="form-heading">Create Task</h2>
+    <form id="task-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" id="submit-task">Create Task</button>
+        <button type="button" id="cancel-edit" style="display:none;">Cancel</button>
+    </form>
+
+    <h2>Tasks</h2>
+    <ul id="task-list">
+        {% for task in tasks %}
+            <li data-id="{{ task.id }}">
+                <h3>{{ task.title }}</h3>
+                <p>{{ task.description }}</p>
+                <p>Completed: {{ task.completed }}</p>
+                <button class="edit-task-button">Edit</button>
+                <button class="delete-task-button">Delete</button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        // Create or Update Task
+        $('#task-form').on('submit', function(e) {
+            e.preventDefault();
+            var url = $('#task-form').data('url') || "{% url 'create_task' %}";
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: $(this).serialize(),
+                success: function(response) {
+                    if (url.includes('update_task')) {
+                        $('li[data-id="' + response.id + '"]').html(
+                            '<h3>' + response.title + '</h3>' +
+                            '<p>' + response.description + '</p>' +
+                            '<p>Completed: ' + response.completed + '</p>' +
+                            '<button class="edit-task-button">Edit</button>' +
+                            '<button class="delete-task-button">Delete</button>'
+                        );
+                        $('#submit-task').text('Create Task');
+                        $('#cancel-edit').hide();
+                        $('#form-heading').text('Create Task');
+                        $('#task-form').removeData('url');
+                    } else {
+                        $('#task-list').append(
+                            '<li data-id="' + response.id + '">' +
+                            '<h3>' + response.title + '</h3>' +
+                            '<p>' + response.description + '</p>' +
+                            '<p>Completed: ' + response.completed + '</p>' +
+                            '<button class="edit-task-button">Edit</button>' +
+                            '<button class="delete-task-button">Delete</button>' +
+                            '</li>'
+                        );
+                    }
+                    $('#task-form')[0].reset();
+                }
+            });
+        });
+
+        // Edit Task
+        $(document).on('click', '.edit-task-button', function() {
+            var li = $(this).closest('li');
+            var id = li.data('id');
+            $.ajax({
+                type: 'GET',
+                url: "{% url 'update_task' task_id=0 %}".replace('0', id),
+                success: function(response) {
+                    $('#id_title').val(response.title);
+                    $('#id_description').val(response.description);
+                    $('#id_completed').prop('checked', response.completed);
+                    $('#task-form').data('url', "{% url 'update_task' task_id=0 %}".replace('0', response.id));
+                    $('#submit-task').text('Update Task');
+                    $('#cancel-edit').show();
+                    $('#form-heading').text('Update Task');  // Change heading
+                }
+            });
+        });
+
+        // Cancel Edit
+        $('#cancel-edit').on('click', function() {
+            $('#task-form')[0].reset();
+            $('#submit-task').text('Create Task');
+            $('#task-form').removeData('url');
+            $(this).hide();
+            $('#form-heading').text('Create Task');  // Reset heading
+        });
+
+        // Delete Task
+        $(document).on('click', '.delete-task-button', function() {
+            var li = $(this).closest('li');
+            var id = li.data('id');
+            $.ajax({
+                type: 'POST',
+                url: "{% url 'delete_task' task_id=0 %}".replace('0', id),
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        li.remove();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
